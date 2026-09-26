@@ -220,5 +220,24 @@ class SolImportResolveTest : SolResolveTestBase() {
     assertTrue(SolImportConfigService.getInstance(project).reverseRemappings(file).isEmpty())
   }
 
+  fun testImportPathResolveReturnsStableElement() {
+    InlineFile("contract B {}", "B.sol")
+    val usage = InlineFile(
+      """
+          import "./B.sol";
+                      //^
+          contract A {}
+      """.trimIndent()
+    ).psiFile
+    myFixture.configureFromExistingVirtualFile(usage.virtualFile)
+    val (refElement) = findElementAndDataInEditor<SolNamedElement>("^")
+    val reference = refElement.reference as? SolImportPathReference ?: error("import path has no reference")
+
+    val first = checkNotNull(reference.singleResolve())
+    val second = reference.singleResolve()
+
+    assertSame(first, second)
+  }
+
   override fun getTestDataPath() = "src/test/resources/fixtures/import/"
 }
